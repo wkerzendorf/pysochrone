@@ -4,7 +4,7 @@ import numpy as np
 import re
 from matplotlib import mlab
 import StringIO
-import urllib, pycurl
+#import pycurl
 import sqlite3
 import os
 from glob import glob

@@ -1,4 +1,4 @@
-from scipy import interpolate
+from scipy import interpolate, spatial
 import cPickle as pickle
 import numpy as np
 import sqlite3
@@ -65,7 +65,21 @@ def getTeffLoggInterpolator(conn=None):
 
     return interpolate.LinearNDInterpolator(points, newValues)
 
-
+def getPhot(teff, logg, feh, isoInterpolator, stepSize=0.1):
+    ages = np.arange(isoInterpolator.points[:,0].min(), isoInterpolator.points[:,0].max(), stepSize)
+    dists = []
+    distIDx = []
+    for age in ages:
+        isoData = getCompleteData(isoInterpolator(age, feh))
+        teffLoggData = isoData[['teff','logg']].view(np.float).reshape((isoData.size, 2))
+        #teffLoggKDTree = spatial.kdtree.KDTree(teffLoggData/np.array((teff, logg)))
+        tmpDist = (teffLoggData-np.array((teff, logg)))/(teffLoggData+np.array((teff, logg)))
+#        dist, idx = teffLoggKDTree.query((1, 1))
+        calcDist = np.sum(tmpDist**2,axis=1)
+        dists.append(np.min(calcDist))
+        distIDx.append(np.argmin(calcDist))
+    minIDx = np.argmin(dists)
+    return getCompleteData(isoInterpolator(ages[minIDx], feh))[distIDx[minIDx]]    
 
 def getMinuitGrid(interpolator, params):
     if len(params) == 0:
