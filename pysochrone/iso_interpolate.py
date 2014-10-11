@@ -4,8 +4,9 @@ import numpy as np
 import sqlite3
 import pdb
 import os
-import minuit
+
 from matplotlib.widgets import Slider, Button, RadioButtons, CheckButtons
+import pandas as pd
 
 def convertZipPickle(blob):
     return pickle.loads(bz2.decompress(blob))
@@ -24,7 +25,26 @@ def readFromDB(conn=None):
     age, mh, iso = zip(*data)
     iso = np.array([item.reshape(2000,13) for item in iso])
     return np.array(zip(age, mh)), iso
-    
+
+def get_panel_from_data(index, data):
+    column_names = ['mass_in', 'mass', 'log_luminosity', 'log_teff', 'm_v',
+                    'ub', 'bv', 'vi', 'vr', 'vj', 'vk', 'vl', 'hk']
+
+    frame_collection = []
+    for frame in data:
+        frame = pd.DataFrame(frame, columns=column_names)
+        frame['teff'] = 10**frame['log_teff']
+        frame['m_bolometric'] = 4.75 - 2.5 * frame['log_luminosity']
+        frame['logg'] = (np.log10(frame['mass']) + 4 * frame['log_teff'] +
+                         0.4 * frame['m_bolometric'] - 12.516)
+        del frame['log_teff']
+        frame_collection.append(frame)
+
+    isochrone_panel = pd.Panel.from_dict(dict(zip(
+        [tuple(item) for item in index],
+        frame_collection)))
+
+
 def getCompleteData(data):
     fields = [('m_in',float),
                 ('m',float),
